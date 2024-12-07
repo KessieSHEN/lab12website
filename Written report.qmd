@@ -1,0 +1,297 @@
+---
+title: "Central Line-Associated Bloodstream infections (CLABSI) in California Hospitals Report"
+format: pdf
+editor: visual
+author: "Kessie SHEN"
+---
+
+# Introduction
+
+The National Healthcare Safety Network (NHSN), under the U.S. Centers for Disease Control and Prevention (CDC), defines central line-associated bloodstream infections (CLABSI) as laboratory-confirmed bloodstream infections occurring within 48 hours after central venous catheter placement, with no other identifiable sources of infection. These infections typically occur in patients undergoing treatment with a central line.
+
+The mechanisms of CLABSI primarily include:
+
+1.Infection at the catheter insertion site: Microorganisms, such as Staphylococcus aureus or Staphylococcus epidermidis residing on the skin, may enter through the puncture site or the surface of the catheter, becoming the initial source of infection. 2.Inadequate sterile techniques during catheter insertion: This can lead to direct microbial entry into the bloodstream. 3.Contamination of the catheter lumen: During catheter use, contamination may occur at infusion line connection points, medication injection sites, or other access points. In addition, patient-related factors can contribute to CLABSI. However, this analysis primarily focuses on external medical procedural factors, such as prolonged use of central venous catheters, improper catheter maintenance (e.g., contaminated dressings or delayed catheter replacement), and repeated catheter insertions. These factors can often be inferred based on hospital type, size, and the level of medical advancement in different regions.
+
+According to the NHSN's definition, CLABSI is determined based on laboratory-confirmed bloodstream infections rather than clinical presentation. This may lead to cases of bloodstream infections caused by other sources being misclassified as CLABSI. This definition prioritizes monitoring purposes rather than accurately reflecting the actual clinical etiology, potentially overestimating the true incidence of CLABSI. Additionally, differences in how healthcare facilities implement the NHSN definition may affect data comparability.
+
+The datasets I selected cover various types of hospitals, including acute care hospitals, critical access hospitals, long-term acute care hospitals, free-standing rehabilitation hospitals, and acute rehabilitation units reporting separately. They allow for an in-depth analysis of CLABSI rates and influencing factors across different healthcare settings and regions. This information is crucial for understanding infection trends, identifying risk factors, and improving infection prevention strategies
+
+# Methods
+
+## How and where the data were acquired.
+
+This public access dataset was created by the California Department of Public Health (CDPH),can be found on the California Health and Human Services (CHHS) Open Data Portal.It offers comprehensive information on central line-associated bloodstream infections (CLABSI) reported by California hospitals via the CDC's National Healthcare Safety Network (NHSN). The data spans various hospital categories, including acute care hospitals, critical access hospitals, long-term acute care hospitals, free-standing rehabilitation hospitals, and acute rehabilitation units. Key variables include the number of infections, central line-days, standardized infection ratios (SIRs), and hospital-specific details. These features enable in-depth analyses of CLABSI trends, regional disparities, and variations across healthcare settings, making this dataset a crucial tool for advancing infection prevention and control efforts.
+
+# Cleaned and wrangled the data
+
+## Understand the Data Structure and Content
+
+·Review Data Sources：Since i m working with data spanning from 2013 to 2023,Before merging datasets from different years, I need to ensure that the information recorded in each dataset is consistent and aligned with the question I’m interested in. I also need to identify which variables are relevant to my analysis and which ones can be temporarily removed without affecting the results.
+
+·Check Time Consistency: Make sure the data is consistent in terms of time intervals.When checking time consistency, only the year 2020 was split into two datasets, one for the first half and one for the second half. As a result, the month is shown as 6, while most other years have data for the full 12 months.
+
+·Standardize Column Names：Columns should be consistently named across datasets to facilitate merging and analysis.The column name for the 2013 table is "Observed_infections," although it represents the same data as "Number of reported CLABSIs," which is referred to as "Infections_Reported" in other tables. A similar issue occurs with "Infections_Predicted," and for one year, the column name is "Observed_Infections." Additionally, there is a difference in case for "Central_line_days," which appears as "Central_Line_Days" and "Central_line_Days" in 2021.
+
+·Using the function:matches("(?i)")makes these matches more robust by ignoring case differences.
+
+·Removing Unnecessary Columns:I understand that removing this field may reduce flexibility. However, due to inconsistencies in naming conventions—such as Facility_Name being used from 2017 to 2023 and Facility_Name1/2 from 2013 to 2016—merging these fields would result in numerous NA values, which could impact the overall clarity of the dataset. After carefully evaluating its relevance and confirming that its removal has minimal impact on the analysis of infection rates, I have decided not to retain this field in the current study.
+
+# Tools used for data exploration.
+
+·ggplot2: This package was used for visualizing the CLABSI rates by county with boxplots, as well as for creating bar charts to display the count of facilities by type. ·corrplot: This package was used to visualize the correlation matrix, providing insights into the relationships between numeric variables in the dataset. ·lm(): The base R function lm() was used to perform linear regression, exploring how hospital size (as represented by bed count) influences the CLABSI rate.
+
+```{r,echo = FALSE, message=FALSE}
+library(data.table)
+library(dplyr)
+library(knitr)
+
+
+folder_path <- "/Users/ckkkkkkkj/Desktop/566Midproj"
+file_paths <- list.files(folder_path, pattern = "*.csv", full.names = TRUE)
+
+
+standardize_column_names <- function(df) {
+ 
+  df <- df %>%
+    rename(
+      Facility_Type = matches("(?i)Hospital_Type"),
+      Facility_Category = matches("(?i)Hospital_Category_RiskAdjustment"),
+      InfectNumber = matches("(?i)Infections_Reported|Observed_infections|Observed_Infections"),
+      Pred_Infect = matches("(?i)Infections_Predicted|Predicted_infections|Predicted_Infections"),
+      CentralLINE_Days = matches("(?i)Central_line_days|Central_Line_Days|Central_line_Days"),
+      SIR_CI_95_Lower_Limit = matches("(?i)95%Confidence_Interval_Low_Limit"),
+      SIR_CI_95_Upper_Limit = matches("(?i)95%Confidence_Interval_Upper_Limit"),
+      Comparison = matches("(?i)Statistical_Interpretation")
+    )
+  return(df)
+}
+
+read_and_rename <- function(file_path) {
+  
+  data <- fread(file_path)
+  
+  data <- standardize_column_names(data)
+
+  return(data)
+}
+
+
+combined_data <- rbindlist(lapply(file_paths, read_and_rename), use.names = TRUE, fill = TRUE)
+
+```
+
+Data Dictionary.after reading the Description Data Dictionary，I believe that "Facility ID" is primarily a unique identifier used to track information about hospitals or healthcare facilities in the California Department of Public Health (CDPH) Electronic Licensing Management System (ELMS).
+
+It is important for data management and record keeping, but it has little impact on the analysis of central line-associated bloodstream infection (CLABSI) data itself and does not directly affect the analysis of infection rates or hospital performance.
+
+Therefore, I deleted it during the merging process. Clip_Adherence_Percent was reported in only four years, and On_Track_Toward_2020_Goal appeared only in 2017 and 2018, resulting in insufficient data. For this analysis, I have temporarily removed them. </small>
+
+```{r,echo = FALSE, message=FALSE}
+ library(kableExtra)
+cleaned_data <- combined_data %>%
+  select(-Clip_Adherence_Percent, 
+         -FACID1, -FACID2, -FACID3, 
+         -Facility_ID1, -Facility_ID, 
+         -Facility_Name1, -Facility_Name2, -Facility_Name3, -Facility_Name,
+         -HAI, 
+         -`On_Track_Toward_2020_Goal (0.80, 2017)`, 
+         -`On_Track_Toward_2020_Goal (0.7, 2018)`, 
+         -On_Track)
+
+# Display the first few rows of cleaned_data as a formatted table
+cleaned_data <- cleaned_data %>%
+  mutate(across(where(is.numeric), ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+
+
+kable(head(cleaned_data), format = "latex", caption = "Preview of Cleaned Data") %>%
+  kable_styling(latex_options = c("striped", "hold_position", "scale_down"))
+
+
+
+```
+
+# Results
+
+## CLABSI infection rates between different regions in California.
+
+```{r, echo = FALSE, message=FALSE, warning=FALSE}
+library(sf)
+library(tmap)
+library(dplyr)
+library(ggplot2)
+
+
+clabsi_by_County <- cleaned_data %>%
+  group_by(County) %>%
+  summarize(
+    Total_Infections = sum(InfectNumber, na.rm = TRUE),
+    Total_Central_Line_Days = sum(CentralLINE_Days, na.rm = TRUE)
+  ) %>%
+  mutate(CLABSI_Rate = (Total_Infections / Total_Central_Line_Days) * 1000)
+
+
+california_map <- st_read("/Users/ckkkkkkkj/Desktop/California_Counties_/Counties.shp", quiet = TRUE)
+
+clabsi_by_County <- clabsi_by_County %>%
+  mutate(County = toupper(County))
+
+california_map <- california_map %>%
+  mutate(CountyName = toupper(CountyName))
+
+
+california_map <- california_map %>%
+  left_join(clabsi_by_County, by = c("CountyName" = "County"))
+
+
+tmap_mode("plot")
+tm_shape(california_map) +
+  tm_fill("CLABSI_Rate", 
+          title = "CLABSI Rates by County in California", 
+          title.size = 1,
+          palette = "Blues", 
+          style = "quantile") +
+  tm_borders() +
+  tm_text("CountyName", size = 0.4, col = "black") 
+```
+
+The map uses color shading to represent the infection rates, with lighter colors indicating lower infection rates and darker shades indicating higher infection rates. The data is normalized by the number of central line days, and counties with missing data are highlighted in gray. This map allows for a quick geographic comparison of infection rates across the state, making it clear which regions have higher infection rates and which areas may need more targeted interventions.
+
+Urban vs. Rural: ·Urban counties such as Los Angeles, San Francisco, and San Diego tend to have higher patient volumes, which could contribute to higher infection rates due to more frequent use of central lines and higher patient turnover.
+
+·Rural counties, such as those in the Central Valley or northern regions like Del Norte and Siskiyou, might have lower infection rates due to fewer central line procedures or better infection control practices.
+
+```{r, echo = FALSE, message=FALSE}
+ggplot(clabsi_by_County, aes(x = reorder(County, CLABSI_Rate), y = CLABSI_Rate, fill = County)) +
+  geom_boxplot(show.legend = FALSE) +
+  labs(
+    title = "CLABSI Rates by County in California",
+    x = "County",
+    y = "CLABSI Rate per 1,000 Central Line Days"
+  ) +
+  theme_minimal() +
+  theme(
+    axis.text.x = element_text(angle = 80, hjust = 1, size = 4),
+    plot.title = element_text(hjust = 0.5)
+  )
+```
+
+The box represents the interquartile range (IQR), where 50% of the counties' CLABSI rates fall. Outliers: Any counties with unusually high or low infection rates are marked as outliers and are located outside the whiskers. These are the counties with extreme CLABSI rates that deviate from the general trend.
+
+# Count of Facilities by Type
+
+```{r,echo = FALSE,fig.width=10, fig.height=6}
+category_summary <- cleaned_data %>%
+  group_by(Facility_Type) %>%
+  summarize(Count = n())
+ggplot(category_summary, aes(x = reorder(Facility_Type, -Count), y = Count)) +
+  geom_bar(stat = "identity", fill = "green") +
+  labs(title = "Count of Facilities by Type", x = "Facility Type", y = "Count") +
+  theme(axis.text.x = element_text(angle=45,size=5,hjust = 1))
+
+```
+
+This bar chart illustrates the count of healthcare facilities in California by facility type.This chart shows that "Major Teaching" hospitals are the most common in California, followed by "Community" hospitals of varying bed sizes. Some specialized facilities, like LTACs and Pediatric hospitals, have much fewer facilities in comparison. It also highlights some data issues, as categories with names like "STATE OF CALIFORNIA POOLED DATA" and "NA" show up at the far right, which could be data inconsistencies or errors that need to be addressed.
+
+# The relationships between various numerical variables in the cleaned dataset.
+
+```{r,echo = FALSE, message=FALSE}
+correlation_matrix <- cor(cleaned_data %>% select(where(is.numeric)), use = "complete.obs")
+library(corrplot)
+corrplot(correlation_matrix, method = "circle")
+
+summary_by_type <- cleaned_data %>%
+  group_by(Facility_Type) %>%
+  summarize(Mean_InfectRate = mean(InfectNumber, na.rm = TRUE),
+            SD_InfectRate = sd(InfectNumber, na.rm = TRUE))
+
+```
+
+This visualization is a correlation matrix that shows the relationships between various numerical variables.It helps in understanding the relationships between different variables related to hospital infection rates, central line days, and hospital characteristics.
+
+Strong Positive Correlations Between InfectNumber, Pred_Infect, and CentralLINE_Days:
+
+·Infections and central line days are directly related. Hospitals with more central line days are more likely to report more infections because the longer a central line is in place, the higher the risk of a bloodstream infection
+
+·As the number of reported infections (InfectNumber) increases, the Pred_Infect (the predicted infections based on baseline data or models) also tends to increase. This makes sense because the model predicting infections is likely using actual infection data as part of its calculation.
+
+Moderate Correlations Between SIR and CLABSI_Rate: ·SIR (Standardized Infection Ratio) is a metric that compares the number of infections in a healthcare facility to the number of infections expected based on national or baseline data. If the SIR is 1, the infection rate is as expected. If it’s greater than 1, the facility has more infections than expected, and if it’s less than 1, the facility has fewer infections than expected.
+
+·CLABSI_Rate refers to the rate of central line-associated bloodstream infections in a given healthcare setting, usually expressed as the number of infections per 1,000 central line days.
+
+·Increased infection rates are often associated with higher SIR values. If a hospital experiences a higher than expected rate of CLABSI, the SIR will be higher (above 1), which indicates worse performance in infection control.
+
+# The relationship between the incidence of CLABSI and the size of the hospital
+
+```{r,echo = FALSE, message=FALSE,warning=FALSE}
+
+#The relationship between the incidence of CLABSI and the size of the hospital
+
+# Step 1: Define Bed Count Mapping
+bed_count_mapping <- c(
+  "Community (<125 Beds)" = 75,
+  "Community (125-250 Beds)" = 200,
+  "Community (>250 Beds)" = 300,
+  "Pediatric/Teaching Hospital" = 500,
+  "Critical Access Hospital" = 25,
+  "Long-term Acute Care Hospital" = 100,
+  "Rehabilitation Unit" = 75
+)
+
+# Step 2: Process Data
+cleaned_data <- cleaned_data %>%
+  mutate(Facility_Type = case_when(
+    grepl("Community.*<125 Beds", Facility_Type, ignore.case = TRUE) ~ "Community (<125 Beds)",
+    grepl("Community.*125-250 Beds", Facility_Type, ignore.case = TRUE) ~ "Community (125-250 Beds)",
+    grepl("Community.*>250 Beds", Facility_Type, ignore.case = TRUE) ~ "Community (>250 Beds)",
+    grepl("Pediatric", Facility_Type, ignore.case = TRUE) ~ "Pediatric/Teaching Hospital",
+    grepl("Major Teaching", Facility_Type, ignore.case = TRUE) ~ "Pediatric/Teaching Hospital",
+    grepl("Critical Access", Facility_Type, ignore.case = TRUE) ~ "Critical Access Hospital",
+    grepl("Long-term Acute Care", Facility_Type, ignore.case = TRUE) ~ "Long-term Acute Care Hospital",
+    grepl("Rehabilitation", Facility_Type, ignore.case = TRUE) ~ "Rehabilitation Unit",
+    TRUE ~ NA_character_
+  )) %>%
+  mutate(CLABSI_Rate = (InfectNumber / CentralLINE_Days) * 1000) %>%
+  mutate(Bed_Count = bed_count_mapping[Facility_Type]) %>%
+  filter(!is.na(Bed_Count) & !is.na(CLABSI_Rate))
+
+# Step 3: Prepare Data for Line Plot
+# Group by Bed Count and calculate mean CLABSI rate for each hospital size
+line_data <- cleaned_data %>%
+  group_by(Bed_Count) %>%
+  summarize(Mean_CLABSI_Rate = mean(CLABSI_Rate, na.rm = TRUE))
+
+# Step 4: Plot the Line Graph
+library(ggplot2)
+ggplot(line_data, aes(x = Bed_Count, y = Mean_CLABSI_Rate)) +
+  geom_line(color = "blue", size = 1) +  # Plot line
+  geom_point(color = "red", size = 2) +  # Add points for each Bed_Count
+  labs(
+    title = "Relationship Between CLABSI Rate and Hospital Size",
+    x = "Estimated Bed Count",
+    y = "Mean CLABSI Rate per 1,000 Central Line Days"
+  ) +
+  theme_minimal()
+```
+
+This line chart illustrates the relationship between hospital size, represented by estimated bed count, and the mean CLABSI rate per 1,000 central line days. The chart shows that smaller hospitals (\<100 beds) tend to have a gradual increase in CLABSI rates, peaking at facilities with around 100 beds. Medium-sized hospitals (200 beds) demonstrate a significant decrease in infection rates, potentially reflecting better resource allocation and infection control practices. Larger hospitals (300–500 beds) exhibit relatively stable infection rates, with a slight upward trend at the highest capacity levels, possibly due to the complexity of cases handled in such facilities. This trend highlights the varying challenges and strengths in infection prevention across different hospital sizes.
+
+Potential Explanations 1.Smaller hospitals may have higher infection rates due to limited resources or suboptimal sterile practices.
+
+2.Medium-sized hospitals may benefit from better management and resource allocation, leading to lower infection rates.
+
+3.Larger hospitals, despite having advanced facilities, may face higher infection risks due to the complexity of cases.
+
+# Conclusion and Summary.
+
+Understanding these correlations can help target specific variables for intervention, such as reducing unnecessary central line use.Infection prevention strategies may need to be tailored to the specific challenges faced by smaller and larger hospitals.
+
+·Smaller hospitals may face resource limitations, while larger hospitals encounter challenges related to case complexity, both affecting CLABSI rates.
+
+·Longer central line use directly correlates with higher infection risks.Predicted infections (Pred_Infect) and actual infections (InfectNumber) align closely, indicating a reliable infection prediction model.
+
+·Categories like "NA" and "STATE OF CALIFORNIA POOLED DATA" highlight the need for standardized data cleaning processes to ensure accurate analyses.
+
+Implications for Future Research and Practice 1.Targeted Infection Control: Interventions should address the specific needs of hospitals based on their size, type, and geographic location. 2.Policy Recommendations: Allocate resources and training to regions and facilities with higher CLABSI rates to improve outcomes
+
+3.Data Improvements: Enhance data collection processes to ensure consistency and eliminate ambiguities in facility categorization.
