@@ -13,6 +13,8 @@ embed-resources: true
 The NHSN defines CLABSI as a laboratory-confirmed bloodstream infection that occurs in a patient who had a central venous catheter placed within 48 hours prior to the date of blood culture collection, with no other source of bacteremia or fungemia identified. This definition is based on monitoring rather than clinical presentation and does not stipulate any requirements regarding symptoms or signs of infection. Since it is often difficult to determine whether a bloodstream infection is related to the central venous catheter itself or to a secondary source of infection (such as an abdominal abscess or pneumonia), the NHSN's definition of CLABSI may overestimate the true incidence of catheter-related infections. As a result, data interpretation can be more complex.
 
 Studying CLABSI (Central Line-Associated Bloodstream Infections) provides significant benefits for improving patient safety and healthcare quality. By analyzing infection rates, healthcare providers can identify risk factors and implement targeted prevention strategies, reducing morbidity and mortality associated with these infections. Understanding variations in CLABSI rates across hospital types and regions allows for the development of tailored interventions and resource allocation,addressing specific challenges in different settings. Additionally, such research promotes accountability, enhances compliance with infection control protocols, and fosters continuous improvement in healthcare practices, ultimately leading to better patient outcomes and cost savings for healthcare systems.
+
+You can download the whole final project written report by clicking [here](https://github.com/KessieSHEN/lab12website/raw/main/docs/Written-report.pdf)
 ```{r,echo = FALSE, message=FALSE}
 library(data.table)
 library(dplyr)
@@ -52,6 +54,8 @@ read_and_rename <- function(file_path) {
 combined_data <- rbindlist(lapply(file_paths, read_and_rename), use.names = TRUE, fill = TRUE)
 
 ```
+
+
 
  Data Dictionary.after reading the Description Data Dictionary，I believe that "Facility ID" is primarily a unique identifier used to track information about hospitals or healthcare facilities in the California Department of Public Health (CDPH) Electronic Licensing Management System (ELMS).
 
